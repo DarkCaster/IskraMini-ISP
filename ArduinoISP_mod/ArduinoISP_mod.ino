@@ -42,52 +42,19 @@
 
 #define SPI_CLOCK 		(1000000/6)
 
-// Configure which pins to use:
-
-// The standard pin configuration.
-#ifndef ARDUINO_HOODLOADER2
-
-#define RESET     10 // Use pin 10 to reset the target rather than SS
-#define LED_HB    9
-#define LED_ERR   8
-#define LED_PMODE 7
-
-// Uncomment following line to use the old Uno style wiring
-// (using pin 11, 12 and 13 instead of the SPI header) on Leonardo, Due...
-
-// #define USE_OLD_STYLE_WIRING
-
-#ifdef USE_OLD_STYLE_WIRING
-
-#define PIN_MOSI	11
-#define PIN_MISO	12
-#define PIN_SCK		13
-
+#ifdef ARDUINO_HOODLOADER2
+#error "running this sketch on ATmega16U2 serial converter chip is not supported for now"
 #endif
 
-// HOODLOADER2 means running sketches on the ATmega16U2 serial converter chips
-// on Uno or Mega boards. We must use pins that are broken out:
-#else
+// Pins configuration:
 
-#define RESET     	4
-#define LED_HB    	7
-#define LED_ERR   	6
-#define LED_PMODE 	5
-
-#endif
-
-// By default, use hardware SPI pins:
-#ifndef PIN_MOSI
-#define PIN_MOSI 	MOSI
-#endif
-
-#ifndef PIN_MISO
-#define PIN_MISO 	MISO
-#endif
-
-#ifndef PIN_SCK
-#define PIN_SCK 	SCK
-#endif
+#define RESET     2
+#define LED_HB    3
+#define LED_ERR   4
+#define LED_PMODE 5
+#define PIN_MOSI  7
+#define PIN_MISO  8
+#define PIN_SCK   9
 
 // Configure the serial port to use.
 //
@@ -106,7 +73,6 @@
 #else
 #define SERIAL Serial
 #endif
-
 
 // Configure the baud rate:
 
