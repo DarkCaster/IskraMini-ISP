@@ -42,19 +42,6 @@
 
 #define SPI_CLOCK 		(1000000/6)
 
-
-// Select hardware or software SPI, depending on SPI clock.
-// Currently only for AVR, for other architectures (Due, Zero,...), hardware SPI
-// is probably too fast anyway.
-
-#if defined(ARDUINO_ARCH_AVR)
-
-#if SPI_CLOCK > (F_CPU / 128)
-#define USE_HARDWARE_SPI
-#endif
-
-#endif
-
 // Configure which pins to use:
 
 // The standard pin configuration.
@@ -102,12 +89,6 @@
 #define PIN_SCK 	SCK
 #endif
 
-// Force bitbanged SPI if not using the hardware SPI pins:
-#if (PIN_MISO != MISO) ||  (PIN_MOSI != MOSI) || (PIN_SCK != SCK)
-#undef USE_HARDWARE_SPI
-#endif
-
-
 // Configure the serial port to use.
 //
 // Prefer the USB virtual serial port (aka. native USB port), if the Arduino has one:
@@ -129,8 +110,8 @@
 
 // Configure the baud rate:
 
-#define BAUDRATE	19200
-// #define BAUDRATE	115200
+//#define BAUDRATE	19200
+#define BAUDRATE	115200
 // #define BAUDRATE	1000000
 
 
@@ -147,10 +128,6 @@
 #define CRC_EOP     0x20 //ok it is a space...
 
 void pulse(int pin, int times);
-
-#ifdef USE_HARDWARE_SPI
-#include "SPI.h"
-#else
 
 #define SPI_MODE0 0x00
 
@@ -203,8 +180,6 @@ class BitBangedSPI {
 };
 
 static BitBangedSPI SPI;
-
-#endif
 
 void setup() {
   SERIAL.begin(BAUDRATE);
