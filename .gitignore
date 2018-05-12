@@ -1,1 +1,2 @@
-*.FCStd[1-9]
+/Case/*.FCStd[1-9]
+/Case/*.stl
