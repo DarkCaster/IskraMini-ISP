@@ -48,7 +48,7 @@
 
 // Pins configuration:
 
-#define RESET     2
+#define RESET     10
 #define LED_HB    3
 #define LED_ERR   4
 #define LED_PMODE 5
