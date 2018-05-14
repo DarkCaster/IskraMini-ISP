@@ -65,8 +65,8 @@
 
 // Configure the baud rate:
 
-//#define BAUDRATE	19200
-#define BAUDRATE	115200
+//#define BAUDRATE	19200 //Arduino as ISP use this by default
+#define BAUDRATE	115200 //AVR ISP use this by default
 // #define BAUDRATE	1000000
 
 
