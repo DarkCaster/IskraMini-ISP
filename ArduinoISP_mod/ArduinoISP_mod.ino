@@ -105,6 +105,8 @@ void setup() {
 
 uint8_t error = 0;
 uint8_t pmode = 0;
+uint8_t stat = 0; //state of error and pmode variable change after avrisp method execution
+
 // address for reading and writing, set by 'U' command
 unsigned int here;
 uint8_t buff[256]; // global block storage
@@ -155,7 +157,7 @@ void loop(void) {
   heartbeat();
   if (SERIAL.available())
   {
-    uint8_t stat=avrisp();
+    avrisp();
     //analyze status from main avrisp logic
     uint8_t statErr=stat>>2;
     //error variable as changed from 0 to 1
@@ -494,9 +496,7 @@ void read_signature() {
 
 ////////////////////////////////////
 ////////////////////////////////////
-uint8_t avrisp() {
-  //status: current and final state of error variable and pmode variable
-  uint8_t stat= 0;
+void avrisp() {
   //set initial state of error and pmode values
   stat = error ? 0x8 : 0x0;
   stat = pmode ? stat|0x2 : stat&0xD;
@@ -593,5 +593,4 @@ uint8_t avrisp() {
   //set final state of error and pmode values
   stat = error ? stat|0x4 : stat&0xB;
   stat = pmode ? stat|0x1 : stat&0xE;
-  return stat;
 }
