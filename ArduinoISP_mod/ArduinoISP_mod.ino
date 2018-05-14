@@ -151,23 +151,27 @@ void reset_target(bool reset) {
 }
 
 void loop(void) {
-  // is pmode active?
-  if (pmode) {
-    digitalWrite(LED_PMODE, HIGH);
-  } else {
-    digitalWrite(LED_PMODE, LOW);
-  }
-  // is there an error?
-  if (error) {
-    digitalWrite(LED_ERR, HIGH);
-  } else {
-    digitalWrite(LED_ERR, LOW);
-  }
-
   // light the heartbeat LED
   heartbeat();
-  if (SERIAL.available()) {
-    avrisp();
+  if (SERIAL.available())
+  {
+    uint8_t stat=avrisp();
+    //analyze status from main avrisp logic
+    uint8_t statErr=stat>>2;
+    //error variable as changed from 0 to 1
+    if(statErr==0x1)
+      digitalWrite(LED_ERR, HIGH);
+    //error variable as changed from >0 to 0
+    else if(statErr==0x2)
+      digitalWrite(LED_ERR, LOW);
+    //generate pmode status value
+    stat&=0x3;
+    //pmode variable as changed from 0 to 1
+    if(stat==0x1)
+      digitalWrite(LED_PMODE, HIGH);
+    //pmode variable as changed from 1 to 0
+    else if(stat==0x2)
+      digitalWrite(LED_PMODE, LOW);
   }
 }
 
@@ -492,7 +496,12 @@ void read_signature() {
 
 ////////////////////////////////////
 ////////////////////////////////////
-void avrisp() {
+uint8_t avrisp() {
+  //status: current and final state of error variable and pmode variable
+  uint8_t stat= 0;
+  //set initial state of error and pmode values
+  stat = error ? 0x8 : 0x0;
+  stat = pmode ? stat|0x2 : stat&0xD;
   uint8_t ch = getch();
   switch (ch) {
     case '0': // signon
@@ -579,4 +588,8 @@ void avrisp() {
       else
         SERIAL.print((char)STK_NOSYNC);
   }
+  //set final state of error and pmode values
+  stat = error ? stat|0x4 : stat&0xB;
+  stat = pmode ? stat|0x1 : stat&0xE;
+  return stat;
 }
