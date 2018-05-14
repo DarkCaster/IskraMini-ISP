@@ -103,8 +103,8 @@ void setup() {
   pulse(LED_PMODE);
 }
 
-int error = 0;
-int pmode = 0;
+uint8_t error = 0;
+uint8_t pmode = 0;
 // address for reading and writing, set by 'U' command
 unsigned int here;
 uint8_t buff[256]; // global block storage
@@ -291,7 +291,6 @@ void start_pmode() {
   // Send the enable programming command:
   delay(50); // datasheet: must be > 20 msec
   spi_transaction(0xAC, 0x53, 0x00, 0x00);
-  pmode = 1;
 }
 
 void end_pmode() {
@@ -300,7 +299,6 @@ void end_pmode() {
   pinMode(PIN_SCK, INPUT);
   reset_target(false);
   pinMode(RESET, INPUT);
-  pmode = 0;
 }
 
 void universal() {
@@ -533,7 +531,10 @@ uint8_t avrisp() {
       break;
     case 'P':
       if (!pmode)
+      {
         start_pmode();
+        pmode = 1;
+      }
       empty_reply();
       break;
     case 'U': // set address (word)
@@ -566,6 +567,7 @@ uint8_t avrisp() {
     case 'Q': //0x51
       error = 0;
       end_pmode();
+      pmode = 0;
       empty_reply();
       break;
 
