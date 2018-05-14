@@ -93,7 +93,6 @@
 #define STK_NOSYNC  0x15
 #define CRC_EOP     0x20 //ok it is a space...
 
-void pulse(int pin, int times);
 
 #define SPI_MODE0 0x00
 
@@ -146,6 +145,16 @@ class BitBangedSPI {
 };
 
 static BitBangedSPI SPI;
+
+#define PTIME 30
+void pulse(int pin, int times) {
+  do {
+    digitalWrite(pin, HIGH);
+    delay(PTIME);
+    digitalWrite(pin, LOW);
+    delay(PTIME);
+  } while (times--);
+}
 
 void setup() {
   SERIAL.begin(BAUDRATE);
@@ -235,16 +244,6 @@ void fill(int n) {
   for (int x = 0; x < n; x++) {
     buff[x] = getch();
   }
-}
-
-#define PTIME 30
-void pulse(int pin, int times) {
-  do {
-    digitalWrite(pin, HIGH);
-    delay(PTIME);
-    digitalWrite(pin, LOW);
-    delay(PTIME);
-  } while (times--);
 }
 
 void prog_lamp(int state) {
