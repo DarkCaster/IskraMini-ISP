@@ -31,8 +31,6 @@
 
 #undef SERIAL
 
-#define PROG_FLICKER true
-
 #ifdef ARDUINO_HOODLOADER2
 #error "running this sketch on ATmega16U2 serial converter chip is not supported for now"
 #endif
@@ -187,12 +185,6 @@ void fill(int n) {
   }
 }
 
-void prog_lamp(int state) {
-  if (PROG_FLICKER) {
-    digitalWrite(LED_PMODE, state);
-  }
-}
-
 uint8_t spi_transaction(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
   ISP.TransferByte(a);
   ISP.TransferByte(b);
@@ -318,14 +310,7 @@ void flash(uint8_t hilo, unsigned int addr, uint8_t data) {
                   data);
 }
 void commit(unsigned int addr) {
-  if (PROG_FLICKER) {
-    prog_lamp(LOW);
-  }
   spi_transaction(0x4C, (addr >> 8) & 0xFF, addr & 0xFF, 0);
-  if (PROG_FLICKER) {
-    delay(PTIME);
-    prog_lamp(HIGH);
-  }
 }
 
 unsigned int current_page() {
@@ -395,13 +380,11 @@ uint8_t write_eeprom(unsigned int length) {
 uint8_t write_eeprom_chunk(unsigned int start, unsigned int length) {
   // this writes byte-by-byte, page writing may be faster (4 bytes at a time)
   fill(length);
-  prog_lamp(LOW);
   for (unsigned int x = 0; x < length; x++) {
     unsigned int addr = start + x;
     spi_transaction(0xC0, (addr >> 8) & 0xFF, addr & 0xFF, buff[x]);
     delay(45);
   }
-  prog_lamp(HIGH);
   return STK_OK;
 }
 
