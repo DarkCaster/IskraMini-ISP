@@ -29,18 +29,7 @@
 #include "Arduino.h"
 #undef SERIAL
 
-
 #define PROG_FLICKER true
-
-// Configure SPI clock (in Hz).
-// E.g. for an ATtiny @ 128 kHz: the datasheet states that both the high and low
-// SPI clock pulse must be > 2 CPU cycles, so take 3 cycles i.e. divide target
-// f_cpu by 6:
-//     #define SPI_CLOCK            (128000/6)
-//
-// A clock slow enough for an ATtiny85 @ 1 MHz, is a reasonable default:
-
-#define SPI_CLOCK 		(1000000/6)
 
 #ifdef ARDUINO_HOODLOADER2
 #error "running this sketch on ATmega16U2 serial converter chip is not supported for now"
@@ -93,58 +82,6 @@
 #define STK_NOSYNC  0x15
 #define CRC_EOP     0x20 //ok it is a space...
 
-
-#define SPI_MODE0 0x00
-
-class SPISettings {
-  public:
-    // clock is in Hz
-    SPISettings(uint32_t clock, uint8_t bitOrder, uint8_t dataMode) : clock(clock) {
-      (void) bitOrder;
-      (void) dataMode;
-    };
-
-  private:
-    uint32_t clock;
-
-    friend class BitBangedSPI;
-};
-
-class BitBangedSPI {
-  public:
-    void begin() {
-      digitalWrite(PIN_SCK, LOW);
-      digitalWrite(PIN_MOSI, LOW);
-      pinMode(PIN_SCK, OUTPUT);
-      pinMode(PIN_MOSI, OUTPUT);
-      pinMode(PIN_MISO, INPUT);
-    }
-
-    void beginTransaction(SPISettings settings) {
-      pulseWidth = (500000 + settings.clock - 1) / settings.clock;
-      if (pulseWidth == 0)
-        pulseWidth = 1;
-    }
-
-    void end() {}
-
-    uint8_t transfer (uint8_t b) {
-      for (unsigned int i = 0; i < 8; ++i) {
-        digitalWrite(PIN_MOSI, (b & 0x80) ? HIGH : LOW);
-        digitalWrite(PIN_SCK, HIGH);
-        delayMicroseconds(pulseWidth);
-        b = (b << 1) | digitalRead(PIN_MISO);
-        digitalWrite(PIN_SCK, LOW); // slow pulse
-        delayMicroseconds(pulseWidth);
-      }
-      return b;
-    }
-
-  private:
-    unsigned long pulseWidth; // in microseconds
-};
-
-static BitBangedSPI SPI;
 
 #define PTIME 30
 void pulse(int pin, int times) {
