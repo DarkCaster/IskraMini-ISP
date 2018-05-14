@@ -27,6 +27,8 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Arduino.h"
+#include "MicroSPI.h"
+
 #undef SERIAL
 
 #define PROG_FLICKER true
@@ -82,6 +84,7 @@
 #define STK_NOSYNC  0x15
 #define CRC_EOP     0x20 //ok it is a space...
 
+static MicroSPI ISP(PIN_MOSI, PIN_MISO, PIN_SCK);
 
 #define PTIME 30
 void pulse(int pin, int times) {
@@ -190,10 +193,10 @@ void prog_lamp(int state) {
 }
 
 uint8_t spi_transaction(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
-  SPI.transfer(a);
-  SPI.transfer(b);
-  SPI.transfer(c);
-  return SPI.transfer(d);
+  ISP.TransferByte(a);
+  ISP.TransferByte(b);
+  ISP.TransferByte(c);
+  return ISP.TransferByte(d);
 }
 
 void empty_reply() {
@@ -273,15 +276,14 @@ void start_pmode() {
   // (reset_target() first sets the correct level)
   reset_target(true);
   pinMode(RESET, OUTPUT);
-  SPI.begin();
-  SPI.beginTransaction(SPISettings(SPI_CLOCK, MSBFIRST, SPI_MODE0));
+  ISP.ResetPins();
 
   // See AVR datasheets, chapter "SERIAL_PRG Programming Algorithm":
 
-  // Pulse RESET after PIN_SCK is low:
-  digitalWrite(PIN_SCK, LOW);
+  // Pulse RESET after PIN_SCK is low (ISP.ResetPins call above will do it):
   delay(20); // discharge PIN_SCK, value arbitrarily chosen
   reset_target(false);
+
   // Pulse must be minimum 2 target CPU clock cycles so 100 usec is ok for CPU
   // speeds above 20 KHz
   delayMicroseconds(100);
@@ -294,7 +296,6 @@ void start_pmode() {
 }
 
 void end_pmode() {
-  SPI.end();
   // We're about to take the target out of reset so configure SPI pins as input
   pinMode(PIN_MOSI, INPUT);
   pinMode(PIN_SCK, INPUT);
