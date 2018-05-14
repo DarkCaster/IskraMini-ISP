@@ -86,26 +86,21 @@
 
 static MicroSPI ISP(PIN_MOSI, PIN_MISO, PIN_SCK);
 
-#define PTIME 30
-void pulse(int pin, int times) {
-  do {
-    digitalWrite(pin, HIGH);
-    delay(PTIME);
-    digitalWrite(pin, LOW);
-    delay(PTIME);
-  } while (times--);
+#define PTIME 200
+void pulse(uint8_t pin) {
+  digitalWrite(pin, HIGH);
+  delay(PTIME);
+  digitalWrite(pin, LOW);
 }
 
 void setup() {
   SERIAL.begin(BAUDRATE);
-
-  pinMode(LED_PMODE, OUTPUT);
-  pulse(LED_PMODE, 2);
-  pinMode(LED_ERR, OUTPUT);
-  pulse(LED_ERR, 2);
   pinMode(LED_HB, OUTPUT);
-  pulse(LED_HB, 2);
-
+  pulse(LED_HB);
+  pinMode(LED_ERR, OUTPUT);
+  pulse(LED_ERR);
+  pinMode(LED_PMODE, OUTPUT);
+  pulse(LED_PMODE);
 }
 
 int error = 0;
