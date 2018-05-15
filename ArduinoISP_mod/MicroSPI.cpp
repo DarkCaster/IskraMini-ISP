@@ -31,7 +31,10 @@
 
 #include "MicroSPI.h"
 
-MicroSPI::MicroSPI(const uint8_t _pinMOSI, const uint8_t _pinMISO, const uint8_t _pinSCLK) :
+MicroSPI::MicroSPI(const uint8_t _pinMOSI, const uint8_t _pinMISO, const uint8_t _pinSCLK, const uint8_t _HSCLK_uSec, const uint8_t _LSCLK_uSec) :
+  //set SCLK low and high pulse widths
+  HSCLK_uSec(_HSCLK_uSec),
+  LSCLK_uSec(_LSCLK_uSec),
   //set pins' designations
   pinMOSI(_pinMOSI),
   pinMISO(_pinMISO),
@@ -57,11 +60,12 @@ void MicroSPI::ResetPins() const
   //set SCLK and MOSI lines to low
   *portSCLK &= maskSCLK_L;
   *portMOSI &= maskMOSI_L;
+  delayMicroseconds(LSCLK_uSec);
 }
 
 uint8_t MicroSPI::TransferByte(uint8_t value) const
 {
-  cli();
+  noInterrupts();
   uint8_t incomingByte = 0;
   uint8_t bitOffset = 8;
   do
@@ -69,14 +73,16 @@ uint8_t MicroSPI::TransferByte(uint8_t value) const
     --bitOffset;
     //set MOSI line accordingly to value's bit and set SCLK line to high
     *portMOSI = value&0x80 ? *portMOSI|maskMOSI_H : *portMOSI&maskMOSI_L;
-    *portSCLK |= maskSCLK_H;
     value <<= 1;
+    *portSCLK |= maskSCLK_H;
+    delayMicroseconds(HSCLK_uSec);
     //read incomingByte's bit and set SCLK line to low
     incomingByte <<= 1;
     incomingByte |= *portMISO&maskMISO ? 1 : 0;
     *portSCLK &= maskSCLK_L;
+    delayMicroseconds(LSCLK_uSec);
   } while(bitOffset>0);
-  sei();
+  interrupts();
   return incomingByte;
 }
 

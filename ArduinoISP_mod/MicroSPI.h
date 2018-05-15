@@ -37,6 +37,8 @@
 class MicroSPI
 {
   private:
+    const uint8_t HSCLK_uSec;
+    const uint8_t LSCLK_uSec;
     const uint8_t pinMOSI;
     const uint8_t pinMISO;
     const uint8_t pinSCLK;
@@ -49,7 +51,7 @@ class MicroSPI
     const uint8_t maskMOSI_L;
     const uint8_t maskSCLK_L;
   public:
-    MicroSPI(const uint8_t pinMOSI, const uint8_t pinMISO, const uint8_t pinSCLK);
+    MicroSPI(const uint8_t pinMOSI, const uint8_t pinMISO, const uint8_t pinSCLK, const uint8_t HSCLK_uSec=1, const uint8_t LSCLK_uSec=1);
     void ResetPins() const;
     uint8_t TransferByte(uint8_t value) const;
 };

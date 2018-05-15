@@ -69,7 +69,6 @@
 #define BAUDRATE	115200 //AVR ISP use this by default
 // #define BAUDRATE	1000000
 
-
 #define HWVER 2
 #define SWMAJ 1
 #define SWMIN 18
@@ -82,7 +81,21 @@
 #define STK_NOSYNC  0x15
 #define CRC_EOP     0x20 //ok it is a space...
 
-static MicroSPI ISP(PIN_MOSI, PIN_MISO, PIN_SCK);
+// SCLK pulse widths for SPI tranfser to target
+
+// for 8 MHz target AVR controller: 1 usec == 8 clocks (>2 clocks) for LOW and HIGH SCLK states
+#define HSCLK_uSec 1
+#define LSCLK_uSec 1
+
+// for 1 MHz target AVR controller: 3 usec == 3 clocks (>2 clocks) for LOW and HIGH SCLK states
+// #define HSCLK_uSec 3
+// #define LSCLK_uSec 3
+
+// for 128 KHz target AVR controller: 24 usec ~= 3 clocks (>2 clocks) for LOW and HIGH SCLK states
+// #define HSCLK_uSec 24
+// #define LSCLK_uSec 24
+
+static MicroSPI ISP(PIN_MOSI, PIN_MISO, PIN_SCK, HSCLK_uSec, LSCLK_uSec);
 
 #define PTIME 200
 void pulse(uint8_t pin) {
