@@ -63,24 +63,41 @@ void MicroSPI::ResetPins() const
   delayMicroseconds(LSCLK_uSec);
 }
 
+//use macro to ensure that this code will be inlined
+
+//set MOSI line accordingly to value's bit and set SCLK line to high
+#define SEND_BIT(value) \
+*portMOSI = value&0x80 ? *portMOSI|maskMOSI_H : *portMOSI&maskMOSI_L; \
+value <<= 1; \
+*portSCLK |= maskSCLK_H; \
+delayMicroseconds(HSCLK_uSec);
+
+//read incomingByte's bit and set SCLK line to low
+#define RECV_BIT(value) \
+value <<= 1; \
+value |= *portMISO&maskMISO ? 1 : 0; \
+*portSCLK &= maskSCLK_L; \
+delayMicroseconds(LSCLK_uSec);
+
 uint8_t MicroSPI::TransferByte(uint8_t value) const
 {
   uint8_t incomingByte = 0;
-  uint8_t bitOffset = 8;
-  do
-  {
-    --bitOffset;
-    //set MOSI line accordingly to value's bit and set SCLK line to high
-    *portMOSI = value&0x80 ? *portMOSI|maskMOSI_H : *portMOSI&maskMOSI_L;
-    value <<= 1;
-    *portSCLK |= maskSCLK_H;
-    delayMicroseconds(HSCLK_uSec);
-    //read incomingByte's bit and set SCLK line to low
-    incomingByte <<= 1;
-    incomingByte |= *portMISO&maskMISO ? 1 : 0;
-    *portSCLK &= maskSCLK_L;
-    delayMicroseconds(LSCLK_uSec);
-  } while(bitOffset>0);
+  SEND_BIT(value);
+  RECV_BIT(incomingByte);
+  SEND_BIT(value);
+  RECV_BIT(incomingByte);
+  SEND_BIT(value);
+  RECV_BIT(incomingByte);
+  SEND_BIT(value);
+  RECV_BIT(incomingByte);
+  SEND_BIT(value);
+  RECV_BIT(incomingByte);
+  SEND_BIT(value);
+  RECV_BIT(incomingByte);
+  SEND_BIT(value);
+  RECV_BIT(incomingByte);
+  SEND_BIT(value);
+  RECV_BIT(incomingByte);
   return incomingByte;
 }
 
