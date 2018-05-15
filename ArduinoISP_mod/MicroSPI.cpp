@@ -65,7 +65,6 @@ void MicroSPI::ResetPins() const
 
 uint8_t MicroSPI::TransferByte(uint8_t value) const
 {
-  noInterrupts();
   uint8_t incomingByte = 0;
   uint8_t bitOffset = 8;
   do
@@ -82,7 +81,6 @@ uint8_t MicroSPI::TransferByte(uint8_t value) const
     *portSCLK &= maskSCLK_L;
     delayMicroseconds(LSCLK_uSec);
   } while(bitOffset>0);
-  interrupts();
   return incomingByte;
 }
 
