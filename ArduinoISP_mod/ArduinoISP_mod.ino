@@ -83,7 +83,7 @@
 
 // SCLK pulse widths for SPI tranfser to target
 
-// for 8 MHz target AVR controller: 1 usec == 8 clocks (>2 clocks) for LOW and HIGH SCLK states
+// for 4 Mhz and faster target AVR controller: 1 usec == 4 clocks on 4 Mhz (>2 clocks) for LOW and HIGH SCLK states
 #define HSCLK_uSec 1
 #define LSCLK_uSec 1
 
