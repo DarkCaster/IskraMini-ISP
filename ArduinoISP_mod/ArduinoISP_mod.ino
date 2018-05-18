@@ -74,12 +74,17 @@
 #define SWMIN 18
 
 // STK Definitions
-#define STK_OK      0x10
-#define STK_FAILED  0x11
-#define STK_UNKNOWN 0x12
-#define STK_INSYNC  0x14
-#define STK_NOSYNC  0x15
-#define CRC_EOP     0x20 //ok it is a space...
+static constexpr uint8_t operator "" _u8 (unsigned long long arg) noexcept
+{
+  return static_cast<uint8_t>(arg);
+}
+
+#define STK_OK 0x10_u8
+#define STK_FAILED 0x11_u8
+#define STK_UNKNOWN 0x12_u8
+#define STK_INSYNC 0x14_u8
+#define STK_NOSYNC 0x15_u8
+#define CRC_EOP 0x20_u8
 
 // SCLK pulse widths for SPI tranfser to target
 
@@ -97,7 +102,7 @@
 
 static MicroSPI ISP(PIN_MOSI, PIN_MISO, PIN_SCK, HSCLK_uSec, LSCLK_uSec);
 
-#define PTIME 200
+#define PTIME 200_u8
 void pulse(uint8_t pin) {
   digitalWrite(pin, HIGH);
   delay(PTIME);
@@ -215,22 +220,22 @@ uint8_t spi_transaction(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
 
 void empty_reply() {
   if (CRC_EOP == getch()) {
-    SERIAL.print((char)STK_INSYNC);
-    SERIAL.print((char)STK_OK);
+    SERIAL.write(STK_INSYNC);
+    SERIAL.write(STK_OK);
   } else {
     SET_ERROR();
-    SERIAL.print((char)STK_NOSYNC);
+    SERIAL.write(STK_NOSYNC);
   }
 }
 
 void breply(uint8_t b) {
   if (CRC_EOP == getch()) {
-    SERIAL.print((char)STK_INSYNC);
-    SERIAL.print((char)b);
-    SERIAL.print((char)STK_OK);
+    SERIAL.write(STK_INSYNC);
+    SERIAL.write(b);
+    SERIAL.write(STK_OK);
   } else {
     SET_ERROR();
-    SERIAL.print((char)STK_NOSYNC);
+    SERIAL.write(STK_NOSYNC);
   }
 }
 
@@ -354,11 +359,11 @@ unsigned int current_page() {
 void write_flash(int length) {
   fill(length);
   if (CRC_EOP == getch()) {
-    SERIAL.print((char) STK_INSYNC);
-    SERIAL.print((char) write_flash_pages(length));
+    SERIAL.write(STK_INSYNC);
+    SERIAL.write(write_flash_pages(length));
   } else {
     SET_ERROR();
-    SERIAL.print((char) STK_NOSYNC);
+    SERIAL.write(STK_NOSYNC);
   }
 }
 
@@ -410,7 +415,7 @@ uint8_t write_eeprom_chunk(unsigned int start, unsigned int length) {
 }
 
 void program_page() {
-  char result = (char) STK_FAILED;
+  uint8_t result = STK_FAILED;
   unsigned int length = 256 * getch();
   length += getch();
   char memtype = getch();
@@ -420,17 +425,17 @@ void program_page() {
     return;
   }
   if (memtype == 'E') {
-    result = (char)write_eeprom(length);
+    result = (uint8_t)write_eeprom(length);
     if (CRC_EOP == getch()) {
-      SERIAL.print((char) STK_INSYNC);
-      SERIAL.print(result);
+      SERIAL.write(STK_INSYNC);
+      SERIAL.write(result);
     } else {
       SET_ERROR();
-      SERIAL.print((char) STK_NOSYNC);
+      SERIAL.write(STK_NOSYNC);
     }
     return;
   }
-  SERIAL.print((char)STK_FAILED);
+  SERIAL.write(STK_FAILED);
   return;
 }
 
@@ -444,9 +449,9 @@ uint8_t flash_read(uint8_t hilo, unsigned int addr) {
 char flash_read_page(int length) {
   for (int x = 0; x < length; x += 2) {
     uint8_t low = flash_read(LOW, here);
-    SERIAL.print((char) low);
+    SERIAL.write(low);
     uint8_t high = flash_read(HIGH, here);
-    SERIAL.print((char) high);
+    SERIAL.write(high);
     here++;
   }
   return STK_OK;
@@ -458,41 +463,41 @@ char eeprom_read_page(int length) {
   for (int x = 0; x < length; x++) {
     int addr = start + x;
     uint8_t ee = spi_transaction(0xA0, (addr >> 8) & 0xFF, addr & 0xFF, 0xFF);
-    SERIAL.print((char) ee);
+    SERIAL.write(ee);
   }
   return STK_OK;
 }
 
 void read_page() {
-  char result = (char)STK_FAILED;
+  uint8_t result = STK_FAILED;
   int length = 256 * getch();
   length += getch();
   char memtype = getch();
   if (CRC_EOP != getch()) {
     SET_ERROR();
-    SERIAL.print((char) STK_NOSYNC);
+    SERIAL.write(STK_NOSYNC);
     return;
   }
-  SERIAL.print((char) STK_INSYNC);
+  SERIAL.write(STK_INSYNC);
   if (memtype == 'F') result = flash_read_page(length);
   if (memtype == 'E') result = eeprom_read_page(length);
-  SERIAL.print(result);
+  SERIAL.write(result);
 }
 
 void read_signature() {
   if (CRC_EOP != getch()) {
     SET_ERROR();
-    SERIAL.print((char) STK_NOSYNC);
+    SERIAL.write(STK_NOSYNC);
     return;
   }
-  SERIAL.print((char) STK_INSYNC);
+  SERIAL.write(STK_INSYNC);
   uint8_t high = spi_transaction(0x30, 0x00, 0x00, 0x00);
-  SERIAL.print((char) high);
+  SERIAL.write(high);
   uint8_t middle = spi_transaction(0x30, 0x00, 0x01, 0x00);
-  SERIAL.print((char) middle);
+  SERIAL.write(middle);
   uint8_t low = spi_transaction(0x30, 0x00, 0x02, 0x00);
-  SERIAL.print((char) low);
-  SERIAL.print((char) STK_OK);
+  SERIAL.write(low);
+  SERIAL.write(STK_OK);
 }
 //////////////////////////////////////////
 //////////////////////////////////////////
@@ -511,13 +516,13 @@ void avrisp() {
       break;
     case '1':
       if (getch() == CRC_EOP) {
-        SERIAL.print((char) STK_INSYNC);
+        SERIAL.write(STK_INSYNC);
         SERIAL.print("AVR ISP");
-        SERIAL.print((char) STK_OK);
+        SERIAL.write(STK_OK);
       }
       else {
         SET_ERROR();
-        SERIAL.print((char) STK_NOSYNC);
+        SERIAL.write(STK_NOSYNC);
       }
       break;
     case 'A':
@@ -582,15 +587,15 @@ void avrisp() {
     // this is how we can get back in sync
     case CRC_EOP:
       SET_ERROR();
-      SERIAL.print((char) STK_NOSYNC);
+      SERIAL.write(STK_NOSYNC);
       break;
 
     // anything else we will return STK_UNKNOWN
     default:
       SET_ERROR();
       if (CRC_EOP == getch())
-        SERIAL.print((char)STK_UNKNOWN);
+        SERIAL.write(STK_UNKNOWN);
       else
-        SERIAL.print((char)STK_NOSYNC);
+        SERIAL.write(STK_NOSYNC);
   }
 }
