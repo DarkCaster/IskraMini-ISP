@@ -202,8 +202,9 @@ void loop(void) {
 }
 
 uint8_t getch() {
-  while (!SERIAL.available());
-  return SERIAL.read();
+  int data=-1;
+  while ((data=SERIAL.read())<0);
+  return data;
 }
 void fill(int n) {
   for (int x = 0; x < n; x++) {
