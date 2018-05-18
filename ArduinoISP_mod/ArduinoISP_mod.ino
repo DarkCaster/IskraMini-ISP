@@ -114,9 +114,17 @@ void setup() {
   pulse(LED_PMODE);
 }
 
-uint8_t error = 0;
-uint8_t pmode = 0;
-uint8_t stat = 0; //state of error and pmode variable change after avrisp method execution
+uint8_t status = 0; //used to detect status change after avrisp method execution
+
+#define STATUS_SHIFT() ({ uint8_t status_cur=status&0x5; status<<=1; status=status_cur&0x4?status|0x4:status&0xB; status=status_cur&0x1?status|0x1:status&0xE; })
+#define SET_PMODE() ({ status|=0x1; })
+#define UNSET_PMODE() ({ status&=0xE; })
+#define SET_ERROR() ({ status|=0x4; })
+#define UNSET_ERROR() ({ status&=0xB; })
+#define GET_PMODE() ( status&0x1 )
+#define GET_PMODE_STATUS() ( status&0x3 )
+#define GET_ERROR_STATUS() ( status&0xC )
+
 
 // address for reading and writing, set by 'U' command
 unsigned int here;
@@ -169,16 +177,16 @@ void loop(void) {
   if (SERIAL.available())
   {
     avrisp();
-    //analyze status from main avrisp logic
-    uint8_t statErr=stat>>2;
+    //light-up or shut-down some LEDS depending on status change
+    uint8_t stat=GET_ERROR_STATUS();
     //error variable as changed from 0 to 1
-    if(statErr==0x1)
+    if(stat==0x4)
       digitalWrite(LED_ERR, HIGH);
     //error variable as changed from >0 to 0
-    else if(statErr==0x2)
+    else if(stat==0x8)
       digitalWrite(LED_ERR, LOW);
     //generate pmode status value
-    stat&=0x3;
+    stat=GET_PMODE_STATUS();
     //pmode variable as changed from 0 to 1
     if(stat==0x1)
       digitalWrite(LED_PMODE, HIGH);
@@ -210,7 +218,7 @@ void empty_reply() {
     SERIAL.print((char)STK_INSYNC);
     SERIAL.print((char)STK_OK);
   } else {
-    error++;
+    SET_ERROR();
     SERIAL.print((char)STK_NOSYNC);
   }
 }
@@ -221,7 +229,7 @@ void breply(uint8_t b) {
     SERIAL.print((char)b);
     SERIAL.print((char)STK_OK);
   } else {
-    error++;
+    SET_ERROR();
     SERIAL.print((char)STK_NOSYNC);
   }
 }
@@ -349,7 +357,7 @@ void write_flash(int length) {
     SERIAL.print((char) STK_INSYNC);
     SERIAL.print((char) write_flash_pages(length));
   } else {
-    error++;
+    SET_ERROR();
     SERIAL.print((char) STK_NOSYNC);
   }
 }
@@ -378,7 +386,7 @@ uint8_t write_eeprom(unsigned int length) {
   unsigned int start = here * 2;
   unsigned int remaining = length;
   if (length > param.eepromsize) {
-    error++;
+    SET_ERROR();
     return STK_FAILED;
   }
   while (remaining > EECHUNK) {
@@ -417,7 +425,7 @@ void program_page() {
       SERIAL.print((char) STK_INSYNC);
       SERIAL.print(result);
     } else {
-      error++;
+      SET_ERROR();
       SERIAL.print((char) STK_NOSYNC);
     }
     return;
@@ -461,7 +469,7 @@ void read_page() {
   length += getch();
   char memtype = getch();
   if (CRC_EOP != getch()) {
-    error++;
+    SET_ERROR();
     SERIAL.print((char) STK_NOSYNC);
     return;
   }
@@ -473,7 +481,7 @@ void read_page() {
 
 void read_signature() {
   if (CRC_EOP != getch()) {
-    error++;
+    SET_ERROR();
     SERIAL.print((char) STK_NOSYNC);
     return;
   }
@@ -493,13 +501,12 @@ void read_signature() {
 ////////////////////////////////////
 ////////////////////////////////////
 void avrisp() {
-  //set initial state of error and pmode values
-  stat = error ? 0x8 : 0x0;
-  stat = pmode ? stat|0x2 : stat&0xD;
+  // store previous error and pmode values
+  STATUS_SHIFT();
   uint8_t ch = getch();
   switch (ch) {
     case '0': // signon
-      error = 0;
+      UNSET_ERROR();
       empty_reply();
       break;
     case '1':
@@ -509,7 +516,7 @@ void avrisp() {
         SERIAL.print((char) STK_OK);
       }
       else {
-        error++;
+        SET_ERROR();
         SERIAL.print((char) STK_NOSYNC);
       }
       break;
@@ -526,10 +533,10 @@ void avrisp() {
       empty_reply();
       break;
     case 'P':
-      if (!pmode)
+      if (!GET_PMODE())
       {
         start_pmode();
-        pmode = 1;
+        SET_PMODE();
       }
       empty_reply();
       break;
@@ -561,9 +568,9 @@ void avrisp() {
       universal();
       break;
     case 'Q': //0x51
-      error = 0;
+      UNSET_ERROR();
       end_pmode();
-      pmode = 0;
+      UNSET_PMODE();
       empty_reply();
       break;
 
@@ -574,19 +581,16 @@ void avrisp() {
     // expecting a command, not CRC_EOP
     // this is how we can get back in sync
     case CRC_EOP:
-      error++;
+      SET_ERROR();
       SERIAL.print((char) STK_NOSYNC);
       break;
 
     // anything else we will return STK_UNKNOWN
     default:
-      error++;
+      SET_ERROR();
       if (CRC_EOP == getch())
         SERIAL.print((char)STK_UNKNOWN);
       else
         SERIAL.print((char)STK_NOSYNC);
   }
-  //set final state of error and pmode values
-  stat = error ? stat|0x4 : stat&0xB;
-  stat = pmode ? stat|0x1 : stat&0xE;
 }
