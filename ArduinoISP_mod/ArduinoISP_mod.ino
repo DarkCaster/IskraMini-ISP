@@ -179,9 +179,10 @@ void reset_target(bool reset) {
 void loop(void) {
   // light the heartbeat LED
   heartbeat();
-  if (SERIAL.available())
+  int avrisp_ch=-1;
+  if ((avrisp_ch=SERIAL.read())>0)
   {
-    avrisp();
+    avrisp(avrisp_ch);
     //light-up or shut-down some LEDS depending on status change
     uint8_t stat=GET_ERROR_STATUS();
     //error variable as changed from 0 to 1
@@ -206,6 +207,7 @@ uint8_t getch() {
   while ((data=SERIAL.read())<0);
   return data;
 }
+
 void fill(int n) {
   for (int x = 0; x < n; x++) {
     buff[x] = getch();
@@ -506,10 +508,9 @@ void read_signature() {
 
 ////////////////////////////////////
 ////////////////////////////////////
-void avrisp() {
+void avrisp(const uint8_t ch) {
   // store previous error and pmode values
   STATUS_SHIFT();
-  uint8_t ch = getch();
   switch (ch) {
     case '0': // signon
       UNSET_ERROR();
