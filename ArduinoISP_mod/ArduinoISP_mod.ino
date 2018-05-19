@@ -132,8 +132,8 @@ static uint8_t pmode = 0;
 #define GET_ERROR_STATUS() ( status&0x3 )
 
 // address for reading and writing, set by 'U' command
-unsigned int here;
-uint8_t buff[256]; // global block storage
+static unsigned int here;
+static uint8_t buff[256]; // global block storage
 
 #define beget16(addr) (*addr * 256 + *(addr+1) )
 typedef struct param {
@@ -155,9 +155,9 @@ parameter;
 
 parameter param;
 
-// this provides a heartbeat on pin 9, so you can tell the software is running.
-uint8_t hbval = 128;
-int8_t hbdelta = 8;
+// this provides a heartbeat on LED_HB, so you can tell the software is running.
+static uint8_t hbval = 128;
+static int8_t hbdelta = 8;
 void heartbeat() {
   static unsigned long last_time = 0;
   unsigned long now = millis();
