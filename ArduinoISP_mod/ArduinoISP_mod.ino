@@ -119,17 +119,12 @@ void setup() {
   pulse(LED_PMODE);
 }
 
-uint8_t status = 0; //used to detect status change after avrisp method execution
-
-#define STATUS_SHIFT() ({ uint8_t status_cur=status&0x5; status<<=1; status=status_cur&0x4?status|0x4:status&0xB; status=status_cur&0x1?status|0x1:status&0xE; })
-#define SET_PMODE() ({ status|=0x1; })
-#define UNSET_PMODE() ({ status&=0xE; })
-#define SET_ERROR() ({ status|=0x4; })
-#define UNSET_ERROR() ({ status&=0xB; })
-#define GET_PMODE() ( status&0x1 )
-#define GET_PMODE_STATUS() ( status&0x3 )
-#define GET_ERROR_STATUS() ( status&0xC )
-
+static uint8_t status = 0; //used to detect error status change after avrisp method execution
+static uint8_t pmode = 0;
+#define STATUS_SHIFT() ({ status=(status<<1)|(status&0x1); })
+#define SET_ERROR() ({ status|=0x1; })
+#define UNSET_ERROR() ({ status&=0x2; })
+#define GET_ERROR_STATUS() ( status&0x3 )
 
 // address for reading and writing, set by 'U' command
 unsigned int here;
@@ -176,33 +171,8 @@ void reset_target(bool reset) {
   digitalWrite(RESET, ((reset && rst_active_high) || (!reset && !rst_active_high)) ? HIGH : LOW);
 }
 
-void loop(void) {
-  // light the heartbeat LED
-  heartbeat();
-  int avrisp_ch=-1;
-  if ((avrisp_ch=SERIAL.read())>0)
-  {
-    avrisp(avrisp_ch);
-    //light-up or shut-down some LEDS depending on status change
-    uint8_t stat=GET_ERROR_STATUS();
-    //error variable as changed from 0 to 1
-    if(stat==0x4)
-      digitalWrite(LED_ERR, HIGH);
-    //error variable as changed from >0 to 0
-    else if(stat==0x8)
-      digitalWrite(LED_ERR, LOW);
-    //generate pmode status value
-    stat=GET_PMODE_STATUS();
-    //pmode variable as changed from 0 to 1
-    if(stat==0x1)
-      digitalWrite(LED_PMODE, HIGH);
-    //pmode variable as changed from 1 to 0
-    else if(stat==0x2)
-      digitalWrite(LED_PMODE, LOW);
-  }
-}
-
-uint8_t getch() {
+uint8_t getch()
+{
   int data=-1;
   while ((data=SERIAL.read())<0);
   return data;
@@ -502,27 +472,32 @@ void read_signature() {
   SERIAL.write(low);
   SERIAL.write(STK_OK);
 }
-//////////////////////////////////////////
-//////////////////////////////////////////
 
-
-////////////////////////////////////
-////////////////////////////////////
-void avrisp(const uint8_t ch) {
-  // store previous error and pmode values
+void loop(void)
+{
+  // light the heartbeat LED
+  heartbeat();
+  int avr_ch=-1;
+  if((avr_ch=SERIAL.read())<0)
+    return;
+  uint8_t ch=avr_ch;
+  // store previous status values
   STATUS_SHIFT();
-  switch (ch) {
+  switch (ch)
+  {
     case '0': // signon
       UNSET_ERROR();
       empty_reply();
       break;
     case '1':
-      if (getch() == CRC_EOP) {
+      if (getch() == CRC_EOP)
+      {
         SERIAL.write(STK_INSYNC);
         SERIAL.print("AVR ISP");
         SERIAL.write(STK_OK);
       }
-      else {
+      else
+      {
         SET_ERROR();
         SERIAL.write(STK_NOSYNC);
       }
@@ -540,10 +515,11 @@ void avrisp(const uint8_t ch) {
       empty_reply();
       break;
     case 'P':
-      if (!GET_PMODE())
+      if (!pmode)
       {
         start_pmode();
-        SET_PMODE();
+        pmode=1;
+        digitalWrite(LED_PMODE, HIGH);
       }
       empty_reply();
       break;
@@ -552,7 +528,6 @@ void avrisp(const uint8_t ch) {
       here += 256 * getch();
       empty_reply();
       break;
-
     case 0x60: //STK_PROG_FLASH
       getch(); // low addr
       getch(); // high addr
@@ -562,36 +537,31 @@ void avrisp(const uint8_t ch) {
       getch(); // data
       empty_reply();
       break;
-
     case 0x64: //STK_PROG_PAGE
       program_page();
       break;
-
     case 0x74: //STK_READ_PAGE 't'
       read_page();
       break;
-
     case 'V': //0x56
       universal();
       break;
     case 'Q': //0x51
       UNSET_ERROR();
       end_pmode();
-      UNSET_PMODE();
+      pmode=0;
+      digitalWrite(LED_PMODE, LOW);
       empty_reply();
       break;
-
     case 0x75: //STK_READ_SIGN 'u'
       read_signature();
       break;
-
     // expecting a command, not CRC_EOP
     // this is how we can get back in sync
     case CRC_EOP:
       SET_ERROR();
       SERIAL.write(STK_NOSYNC);
       break;
-
     // anything else we will return STK_UNKNOWN
     default:
       SET_ERROR();
@@ -600,4 +570,12 @@ void avrisp(const uint8_t ch) {
       else
         SERIAL.write(STK_NOSYNC);
   }
+  //light-up or shut-down some LEDS depending on status change
+  uint8_t stat=GET_ERROR_STATUS();
+  //error variable as changed from 0 to 1
+  if(stat==0x1)
+    digitalWrite(LED_ERR, HIGH);
+  //error variable as changed from >0 to 0
+  else if(stat==0x2)
+    digitalWrite(LED_ERR, LOW);
 }
