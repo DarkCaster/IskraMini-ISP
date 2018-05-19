@@ -73,6 +73,10 @@
 #define SWMAJ 1
 #define SWMIN 18
 
+// additional delay (in ms) when trying to read page right after writing
+// I need this hack for some of my 3.3v arduino pro mini clones to fix verification error on some tiny sketches (like blink example).
+#define WRITE_READ_DELAY 100
+
 // STK Definitions
 static constexpr uint8_t operator "" _u8 (unsigned long long arg) noexcept
 {
@@ -119,6 +123,7 @@ void setup() {
   pulse(LED_PMODE);
 }
 
+static uint8_t readDelayNeeded = 0;
 static uint8_t status = 0; //used to detect error status change after avrisp method execution
 static uint8_t pmode = 0;
 #define STATUS_SHIFT() ({ status=(status<<1)|(status&0x1); })
@@ -539,8 +544,14 @@ void loop(void)
       break;
     case 0x64: //STK_PROG_PAGE
       program_page();
+      readDelayNeeded=1;
       break;
     case 0x74: //STK_READ_PAGE 't'
+      if(readDelayNeeded)
+      {
+        readDelayNeeded=0;
+        delay(WRITE_READ_DELAY);
+      }
       read_page();
       break;
     case 'V': //0x56
